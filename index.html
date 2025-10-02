@@ -209,8 +209,9 @@
       company: 'Bennu Healthcare Solutions',
       legalId: '3-101804878',
       address: 'Sabana Sur, Mata Redonda, Centro Comercial del Sur',
-      email: 'serviciotecnico@bennucr.com',
-      phone: 'Teléfono: 6037-4749',
+      email: 'jacuna@bennucr.com',
+      phone: 'Teléfono: 83485676',
+      technician: 'Técnico: Ing. Juan Carlos Acuña Lopez'
     };
 
     /**************** Persistencia: reportes + consecutivo + logo fijo ****************/
@@ -275,104 +276,84 @@
       tbody.querySelectorAll('button').forEach(btn => btn.addEventListener('click', async ev => { const id = ev.currentTarget.dataset.id; const act = ev.currentTarget.dataset.act; const all = loadReportes(); const r = all.find(x=>x.id===id); if (!r) return; if (act==='del') { const filtered = all.filter(x=>x.id!==id); saveReportes(filtered); renderTabla(); toast('Eliminado'); return; } if (act==='view') { loadToForm(r); toast(`Cargado reporte #${r.consecutivo}`); return; } if (act==='pdf') { generarPDF(r); return; } })); }
 
     /**************** PDF – layout alineado al ejemplo ****************/
-  function generarPDF(sourceObj){
-  const obj = sourceObj || formDataToObj(false);
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    function generarPDF(sourceObj){
+      const obj = sourceObj || formDataToObj(false);
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({unit:'pt', format:'a4'});
+      const M = 36; let y = M;
 
-  const M = 36; let y = M;
+      // Cabecera: logo fijo izquierda + datos empresa a la derecha
+      if (obj.logo){ try { doc.addImage(obj.logo, 'PNG', M, y, 120, 60); } catch(e) {} }
+      doc.setFont('helvetica','bold'); doc.setFontSize(12);
+      const rightX = 180; // texto a la derecha del logo
+      doc.text(HEADER.company, rightX, y+12);
+      doc.setFont('helvetica','normal'); doc.setFontSize(10);
+      doc.text(HEADER.legalId, rightX, y+28);
+      doc.text(HEADER.address, rightX, y+44);
+      doc.text(HEADER.email, rightX, y+60);
+      doc.text(HEADER.phone, rightX, y+76);
+      doc.text(HEADER.technician, rightX, y+92);
 
-  // ===== Cabecera (logo grande) =====
-  if (obj.logo) { try { doc.addImage(obj.logo, 'PNG', M, y, 150, 75); } catch(e) {} }
-  const rightX = M + 170;
-  doc.setFont('helvetica','bold'); doc.setFontSize(12);
-  doc.text(HEADER.company, rightX, y + 14);
-  doc.setFont('helvetica','normal'); doc.setFontSize(10);
-  doc.text(HEADER.legalId,   rightX, y + 30);
-  doc.text(HEADER.address,   rightX, y + 46);
-  doc.text(HEADER.email,     rightX, y + 62);
-  doc.text(HEADER.phone,     rightX, y + 78);
-  doc.text(HEADER.technician,rightX, y + 94);
+      y += 110;
+      doc.setDrawColor(100,120,150); doc.setLineWidth(0.7); doc.line(M, y, 595-M, y); y += 14;
 
-  y += 110;
-  doc.setDrawColor(100,120,150); doc.setLineWidth(0.7);
-  doc.line(M, y, 595 - M, y);
+      // Línea: Num OT + bloque horarios + DATOS CLIENTE (dos columnas)
+      doc.setFont('helvetica','bold'); doc.text(`Num. Orden de trabajo: ${obj.consecutivo}`, M, y);
+      doc.setFont('helvetica','normal');
+      y += 18; doc.text(`Fecha: ${obj.fecha}`, M, y);
+      y += 16; doc.text(`Hora Inicio: ${obj.horaIni}`, M, y); doc.text(`Hora Fin: ${obj.horaFin}`, M+160, y); doc.text(`Tiempo: ${obj.duracion}`, M+300, y);
 
-  // ===== OT =====
-  y += 18;
-  doc.setFont('helvetica','bold'); doc.setFontSize(12);
-  doc.text(`Num. Orden de trabajo: ${String(obj.consecutivo).padStart(5,'0')}`, M, y);
+      // Recuadro DATOS CLIENTE a la derecha
+      const boxTop = y-34; const boxH = 84; const boxX = 350; const boxW = 595-M - boxX;
+      doc.setDrawColor(60,80,120); doc.rect(boxX, boxTop, boxW, boxH);
+      doc.setFont('helvetica','bold'); doc.text('DATOS CLIENTE', boxX+8, boxTop+14);
+      doc.setFont('helvetica','normal');
+      doc.text(obj.cliente||'-', boxX+8, boxTop+30);
+      doc.text(`Responsable: ${obj.responsable||'-'}`, boxX+8, boxTop+46);
+      if (obj.correo) doc.text(`Email: ${obj.correo}`, boxX+8, boxTop+62);
 
-  y += 18;
-  doc.setFont('helvetica','normal'); doc.setFontSize(10);
-  doc.text(`Fecha: ${obj.fecha}`, M, y);
-  doc.text(`Hora Inicio: ${obj.horaIni}`, M + 180, y);
-  doc.text(`Hora Fin: ${obj.horaFin}`,   M + 340, y);
-  doc.text(`Tiempo: ${obj.duracion}`,    595 - M, y, { align: 'right' });
+      y += 20; doc.setDrawColor(100,120,150); doc.line(M, y, 595-M, y); y += 18;
 
-  // ===== DATOS DEL CLIENTE (bloque ancho) =====
-  y += 22;
-  doc.setFont('helvetica','bold'); doc.setFontSize(11);
-  doc.text('DATOS DEL CLIENTE', M, y);
+      // Tabla ACTUACIONES – CANTIDAD
+      doc.setFont('helvetica','bold'); doc.text('ACTUACIONES', M, y); doc.text('CANTIDAD', 595-M-80, y, {align:'right'});
+      y += 14; doc.setFont('helvetica','normal');
+      const act = obj.actuacion || '-'; const cant = obj.cantidad || '1';
+      doc.text(act, M, y); doc.text(String(cant), 595-M-10, y, {align:'right'});
 
-  doc.setFont('helvetica','normal'); doc.setFontSize(10);
-  y += 16; doc.text(`Cliente: ${obj.cliente || '-'}`, M, y);
-  y += 16; doc.text(`Responsable: ${obj.responsable || '-'}`, M, y);
-  if (obj.correo) { y += 16; doc.text(`Correo: ${obj.correo}`, M, y); }
+      y += 20; doc.setDrawColor(100,120,150); doc.line(M, y, 595-M, y); y += 18;
 
-  // Separador
-  y += 12; doc.setDrawColor(100,120,150); doc.line(M, y, 595 - M, y);
+      // Observaciones (acciones)
+      doc.setFont('helvetica','bold'); doc.text('Observaciones:', M, y); y += 14;
+      doc.setFont('helvetica','normal');
+      const obsLines = doc.splitTextToSize(obj.acciones || '-', 595 - 2*M);
+      obsLines.forEach(line => { doc.text(line, M, y); y += 12; });
 
-  // ===== ACTUACIONES / CANTIDAD =====
-  y += 18;
-  doc.setFont('helvetica','bold'); doc.setFontSize(11);
-  doc.text('ACTUACIONES', M, y);
-  doc.text('CANTIDAD', 595 - M, y, { align: 'right' });
+      y += 6; doc.setDrawColor(100,120,150); doc.line(M, y, 595-M, y); y += 18;
 
-  y += 14; doc.setFont('helvetica','normal'); doc.setFontSize(10);
-  doc.text(String(obj.actuacion || '-'), M, y);
-  doc.text(String(obj.cantidad || '1'),  595 - M, y, { align: 'right' });
+      // Fotos etiquetadas
+      if (obj.fotos && obj.fotos.length){
+        doc.setFont('helvetica','bold');
+        for (let i=0;i<obj.fotos.length;i++){
+          const tag = `FOTO ${i+1}:`;
+          y += 14; doc.text(tag, M, y);
+          y += 6; const W = 520, H = 320; if (y + H > 820) { doc.addPage(); y = M; }
+          try { doc.addImage(obj.fotos[i], 'JPEG', M, y, W, H); } catch(e) {}
+          y += H + 10; if (y > 820 && i < obj.fotos.length-1){ doc.addPage(); y = M; }
+        }
+      }
 
-  // Separador
-  y += 16; doc.setDrawColor(100,120,150); doc.line(M, y, 595 - M, y);
+      // Firma al final
+      if (y > 680) { doc.addPage(); y = M; }
+      doc.setDrawColor(60,80,120); doc.rect(M, y, 300, 110);
+      doc.setFont('helvetica','bold'); doc.text('Firma del cliente / conformidad', M+8, y+16);
+      if (obj.firma){ try { doc.addImage(obj.firma, 'PNG', M+8, y+22, 280, 80); } catch(e) {} }
 
-  // ===== OBSERVACIONES =====
-  y += 18; doc.setFont('helvetica','bold'); doc.setFontSize(11);
-  doc.text('Observaciones:', M, y);
+      // Pie
+      doc.setDrawColor(200,210,230); doc.line(M, 820, 595-M, 820); doc.setFontSize(8); doc.setTextColor(120,140,170); doc.text('Generado localmente – sin Service Worker.', M, 834);
 
-  y += 14; doc.setFont('helvetica','normal'); doc.setFontSize(10);
-  const obsLines = doc.splitTextToSize(obj.acciones || '-', 595 - 2*M);
-  obsLines.forEach(line => { if (y > doc.internal.pageSize.getHeight() - 80) { doc.addPage(); y = M; } doc.text(line, M, y); y += 12; });
-
-  // Separador
-  if (y < doc.internal.pageSize.getHeight() - 80) { y += 6; doc.setDrawColor(100,120,150); doc.line(M, y, 595 - M, y); }
-
-  // ===== FOTOS =====
-  if (obj.fotos && obj.fotos.length){
-    doc.setFont('helvetica','bold'); doc.setFontSize(11);
-    for (let i = 0; i < obj.fotos.length; i++){
-      const need = 16 + 320 + 10;
-      if (y + need > doc.internal.pageSize.getHeight() - 60) { doc.addPage(); y = M; }
-      y += 16; doc.text(`FOTO ${i+1}:`, M, y);
-      y += 6;
-      try { doc.addImage(obj.fotos[i], 'JPEG', M, y, 595 - 2*M, 320); } catch(e) {}
-      y += 330;
+      const nombre = `OT_${String(obj.consecutivo).padStart(5,'0')}_${(obj.cliente||'Cliente').replace(/[^a-z0-9\-_]+/gi,'_')}.pdf`;
+      doc.save(nombre);
     }
-  }
-
-  // ===== FIRMA =====
-  if (y > doc.internal.pageSize.getHeight() - 180) { doc.addPage(); y = M; }
-  doc.setDrawColor(60,80,120); doc.rect(M, y, 320, 110);
-  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text('Firma del cliente / conformidad', M + 8, y + 16);
-  if (obj.firma){ try { doc.addImage(obj.firma, 'PNG', M + 8, y + 24, 300, 80); } catch(e) {} }
-
-  // ===== PIE =====
-  doc.setDrawColor(200,210,230); doc.line(M, 820, 595 - M, 820);
-  doc.setFontSize(8); doc.setTextColor(120,140,170); doc.text('Generado localmente — sin Service Worker.', M, 834);
-
-  const nombre = `OT_${String(obj.consecutivo).padStart(5,'0')}_${(obj.cliente||'Cliente').replace(/[^a-z0-9\\-_]+/gi,'_')}.pdf`;
-  doc.save(nombre);
-}
 
     /**************** Exportar/Importar JSON ****************/
     document.getElementById('exportarTodo').addEventListener('click', async ()=>{ const datos = loadReportes(); const blob = new Blob([JSON.stringify(datos, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'reportes_backup.json'; a.click(); });
