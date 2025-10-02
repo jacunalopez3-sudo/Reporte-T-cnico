@@ -275,7 +275,7 @@
       tbody.querySelectorAll('button').forEach(btn => btn.addEventListener('click', async ev => { const id = ev.currentTarget.dataset.id; const act = ev.currentTarget.dataset.act; const all = loadReportes(); const r = all.find(x=>x.id===id); if (!r) return; if (act==='del') { const filtered = all.filter(x=>x.id!==id); saveReportes(filtered); renderTabla(); toast('Eliminado'); return; } if (act==='view') { loadToForm(r); toast(`Cargado reporte #${r.consecutivo}`); return; } if (act==='pdf') { generarPDF(r); return; } })); }
 
     /**************** PDF – layout alineado al ejemplo ****************/
-    function generarPDF(sourceObj){
+  function generarPDF(sourceObj){
   const obj = sourceObj || formDataToObj(false);   // no cambia consecutivo al exportar directo
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
