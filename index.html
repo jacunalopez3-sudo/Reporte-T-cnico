@@ -116,7 +116,12 @@
           <div class="grid-2">
             <div>
               <label>Actuación</label>
-              <input type="text" id="actuacion" placeholder="Entrega e instalación / Mantenimiento / Reparación" />
+<select id="actuacion">
+  <option>Mtto Preventivo</option>
+  <option>Mtto Correctivo</option>
+  <option>Instalación de Repuesto</option>
+  <option>Otro</option>
+</select>
             </div>
             <div>
               <label>Cantidad</label>
@@ -204,9 +209,8 @@
       company: 'Bennu Healthcare Solutions',
       legalId: '3-101804878',
       address: 'Sabana Sur, Mata Redonda, Centro Comercial del Sur',
-      email: 'jacuna@bennucr.com',
-      phone: 'Teléfono: 83485676',
-      technician: 'Técnico: Ing. Juan Carlos Acuña Lopez'
+      email: 'serviciotecnico@bennucr.com',
+      phone: 'Teléfono: 6037-4749',
     };
 
     /**************** Persistencia: reportes + consecutivo + logo fijo ****************/
@@ -399,81 +403,6 @@
   doc.save(nombre);
 }
 
-      // Cabecera: logo fijo izquierda + datos empresa a la derecha
-      if (obj.logo){ try { doc.addImage(obj.logo, 'PNG', M, y, 120, 60); } catch(e) {} }
-      doc.setFont('helvetica','bold'); doc.setFontSize(12);
-      const rightX = 180; // texto a la derecha del logo
-      doc.text(HEADER.company, rightX, y+12);
-      doc.setFont('helvetica','normal'); doc.setFontSize(10);
-      doc.text(HEADER.legalId, rightX, y+28);
-      doc.text(HEADER.address, rightX, y+44);
-      doc.text(HEADER.email, rightX, y+60);
-      doc.text(HEADER.phone, rightX, y+76);
-      doc.text(HEADER.technician, rightX, y+92);
-
-      y += 110;
-      doc.setDrawColor(100,120,150); doc.setLineWidth(0.7); doc.line(M, y, 595-M, y); y += 14;
-
-      // Línea: Num OT + bloque horarios + DATOS CLIENTE (dos columnas)
-      doc.setFont('helvetica','bold'); doc.text(`Num. Orden de trabajo: ${obj.consecutivo}`, M, y);
-      doc.setFont('helvetica','normal');
-      y += 18; doc.text(`Fecha: ${obj.fecha}`, M, y);
-      y += 16; doc.text(`Hora Inicio: ${obj.horaIni}`, M, y); doc.text(`Hora Fin: ${obj.horaFin}`, M+160, y); doc.text(`Tiempo: ${obj.duracion}`, M+300, y);
-
-    
-      // Bloque DATOS DEL CLIENTE (debajo del encabezado OT)
-doc.setFont('helvetica','bold');
-doc.text('DATOS DEL CLIENTE', M, y + 20);
-
-doc.setFont('helvetica','normal');
-doc.text(`Cliente: ${obj.cliente || '-'}`, M, y + 36);
-doc.text(`Responsable: ${obj.responsable || '-'}`, M, y + 52);
-if (obj.correo) doc.text(`Correo: ${obj.correo}`, M, y + 68);
-if (obj.telefono) doc.text(`Teléfono: ${obj.telefono}`, M, y + 84);
-
-y += 100; // Avanza para continuar con Actuaciones
-
-
-      // Tabla ACTUACIONES – CANTIDAD
-      doc.setFont('helvetica','bold'); doc.text('ACTUACIONES', M, y); doc.text('CANTIDAD', 595-M-80, y, {align:'right'});
-      y += 14; doc.setFont('helvetica','normal');
-      const act = obj.actuacion || '-'; const cant = obj.cantidad || '1';
-      doc.text(act, M, y); doc.text(String(cant), 595-M-10, y, {align:'right'});
-
-      y += 20; doc.setDrawColor(100,120,150); doc.line(M, y, 595-M, y); y += 18;
-
-      // Observaciones (acciones)
-      doc.setFont('helvetica','bold'); doc.text('Observaciones:', M, y); y += 14;
-      doc.setFont('helvetica','normal');
-      const obsLines = doc.splitTextToSize(obj.acciones || '-', 595 - 2*M);
-      obsLines.forEach(line => { doc.text(line, M, y); y += 12; });
-
-      y += 6; doc.setDrawColor(100,120,150); doc.line(M, y, 595-M, y); y += 18;
-
-      // Fotos etiquetadas
-      if (obj.fotos && obj.fotos.length){
-        doc.setFont('helvetica','bold');
-        for (let i=0;i<obj.fotos.length;i++){
-          const tag = `FOTO ${i+1}:`;
-          y += 14; doc.text(tag, M, y);
-          y += 6; const W = 520, H = 320; if (y + H > 820) { doc.addPage(); y = M; }
-          try { doc.addImage(obj.fotos[i], 'JPEG', M, y, W, H); } catch(e) {}
-          y += H + 10; if (y > 820 && i < obj.fotos.length-1){ doc.addPage(); y = M; }
-        }
-      }
-
-      // Firma al final
-      if (y > 680) { doc.addPage(); y = M; }
-      doc.setDrawColor(60,80,120); doc.rect(M, y, 300, 110);
-      doc.setFont('helvetica','bold'); doc.text('Firma del cliente / conformidad', M+8, y+16);
-      if (obj.firma){ try { doc.addImage(obj.firma, 'PNG', M+8, y+22, 280, 80); } catch(e) {} }
-
-      // Pie
-      doc.setDrawColor(200,210,230); doc.line(M, 820, 595-M, 820); doc.setFontSize(8); doc.setTextColor(120,140,170); doc.text('Generado localmente – sin Service Worker.', M, 834);
-
-      const nombre = `OT_${String(obj.consecutivo).padStart(5,'0')}_${(obj.cliente||'Cliente').replace(/[^a-z0-9\-_]+/gi,'_')}.pdf`;
-      doc.save(nombre);
-    }
 
     /**************** Exportar/Importar JSON ****************/
     document.getElementById('exportarTodo').addEventListener('click', async ()=>{ const datos = loadReportes(); const blob = new Blob([JSON.stringify(datos, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'reportes_backup.json'; a.click(); });
